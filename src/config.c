@@ -44,6 +44,7 @@ static const statsite_config DEFAULT_CONFIG = {
     "/var/run/statsite.pid", // Default pidfile path
     0,                  // Do not use binary output by default
     NULL,               // Do not track number of messages received
+    NULL,               // Do not export internal metrics
     NULL,               // No histograms by default
     NULL,
     0.02,               // 2% goal uses precision 12
@@ -359,6 +360,8 @@ static int config_callback(void* user, const char* section, const char* name, co
         config->pid_file = strdup(value);
     } else if (NAME_MATCH("input_counter")) {
         config->input_counter = strdup(value);
+    } else if (NAME_MATCH("internal_metrics_prefix")) {
+        config->internal_metrics_prefix = strdup(value);
     } else if (NAME_MATCH("bind_address")) {
         config->bind_address = strdup(value);
     } else if (NAME_MATCH("global_prefix")) {

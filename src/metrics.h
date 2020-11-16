@@ -75,7 +75,7 @@ int destroy_metrics(metrics *m);
  * @arg sample_rate The sample rate of val
  * @return 0 on success.
  */
-int metrics_add_sample(metrics *m, metric_type type, char *name, double val, double sample_rate);
+int metrics_add_sample(metrics *m, metric_type type, char *name, double val, double sample_rate, char* internal_metrics_prefix);
 
 /**
  * Adds a value to a named set.

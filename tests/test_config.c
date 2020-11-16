@@ -23,6 +23,7 @@ static void check_default_config(statsite_config config) {
     fail_unless(config.binary_stream == false);
     fail_unless(strcmp(config.pid_file, "/var/run/statsite.pid") == 0);
     fail_unless(config.input_counter == NULL);
+    fail_unless(config.internal_metrics_prefix == NULL);
     fail_unless(config.extended_counters == false);
     fail_unless(config.legacy_extended_counters == true);
     fail_unless(config.timers_config.count == true);
@@ -95,6 +96,7 @@ log_facility = local3\n\
 daemonize = true\n\
 binary_stream = true\n\
 input_counter = foobar\n\
+internal_metrics_prefix = baz\n\
 pid_file = /tmp/statsite.pid\n\
 extended_counters = true\n\
 prefix_binary_stream = true\n\
@@ -121,6 +123,7 @@ quantiles = 0.5, 0.90, 0.95, 0.99\n";
     fail_unless(config.binary_stream == true);
     fail_unless(strcmp(config.pid_file, "/tmp/statsite.pid") == 0);
     fail_unless(strcmp(config.input_counter, "foobar") == 0);
+    fail_unless(strcmp(config.internal_metrics_prefix, "baz") == 0);
     fail_unless(config.extended_counters == true);
     fail_unless(config.prefix_binary_stream == true);
     fail_unless(config.num_quantiles == 4);
@@ -308,6 +311,7 @@ log_facility = local0\n\
 daemonize = true\n\
 binary_stream = true\n\
 input_counter = foobar\n\
+internal_metrics_prefix = baz\n\
 pid_file = /tmp/statsite.pid\n\
 \n\
 [histogram_n1]\n\
@@ -348,6 +352,7 @@ width=25\n\
     fail_unless(config.binary_stream == true);
     fail_unless(strcmp(config.pid_file, "/tmp/statsite.pid") == 0);
     fail_unless(strcmp(config.input_counter, "foobar") == 0);
+    fail_unless(strcmp(config.internal_metrics_prefix, "baz") == 0);
 
     histogram_config *c = config.hist_configs;
     fail_unless(c != NULL);
@@ -504,6 +509,7 @@ log_facility = level0\n\
 daemonize = true\n\
 binary_stream = true\n\
 input_counter = foobar\n\
+internal_metrics_prefix = baz\n\
 pid_file = /tmp/statsite.pid\n\
 global_prefix = statsd.\n\
 use_type_prefix = 1\n\
@@ -535,6 +541,7 @@ sets_prefix=foo.sets.bar.";
     fail_unless(config.binary_stream == true);
     fail_unless(strcmp(config.pid_file, "/tmp/statsite.pid") == 0);
     fail_unless(strcmp(config.input_counter, "foobar") == 0);
+    fail_unless(strcmp(config.internal_metrics_prefix, "baz") == 0);
 
     // Values from config
     fail_unless(strcmp(config.prefixes_final[KEY_VAL], "statsd.keyvalue.") == 0);
@@ -564,6 +571,7 @@ log_facility = local3\n\
 daemonize = true\n\
 binary_stream = true\n\
 input_counter = foobar\n\
+internal_metrics_prefix = baz\n\
 pid_file = /tmp/statsite.pid\n\
 extended_counters = true\n\
 legacy_extended_counters = false\n\
@@ -591,6 +599,7 @@ quantiles = 0.5, 0.90, 0.95, 0.99\n";
     fail_unless(config.binary_stream == true);
     fail_unless(strcmp(config.pid_file, "/tmp/statsite.pid") == 0);
     fail_unless(strcmp(config.input_counter, "foobar") == 0);
+    fail_unless(strcmp(config.internal_metrics_prefix, "baz") == 0);
     fail_unless(config.extended_counters == true);
     fail_unless(config.legacy_extended_counters == false);
     // Only the count extended counter should be included

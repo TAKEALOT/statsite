@@ -288,15 +288,16 @@ static void* flush_thread(void *arg) {
     // Cast the args
     metrics *m = arg;
 
+    struct timeval tv_start, tv_end, tv_diff;
+
     // Get the current time
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv_start, NULL);
 
     // Determine which callback to use
     stream_callback cb = (GLOBAL_CONFIG->binary_stream)? stream_formatter_bin: stream_formatter;
 
     // Stream the records
-    int res = stream_to_command(m, &tv, cb, GLOBAL_CONFIG->stream_cmd);
+    int res = stream_to_command(m, &tv_start, cb, GLOBAL_CONFIG->stream_cmd);
     if (res != 0) {
         syslog(LOG_WARNING, "Streaming command exited with status %d", res);
     }
@@ -304,6 +305,26 @@ static void* flush_thread(void *arg) {
     // Cleanup
     destroy_metrics(m);
     free(m);
+
+    // Get time passed so that we can report on
+    // how long it took us to flush the metrics
+    gettimeofday(&tv_end, NULL);
+    int tv_diff_ms = ((tv_end.tv_sec - tv_start.tv_sec) * 1000) + ((tv_end.tv_usec - tv_start.tv_usec) / 1000);
+
+    syslog(LOG_INFO, "Flushed metrics [%i ms]", tv_diff_ms);
+
+    // By this point, GLOBAL_METRICS has subbed out, and so we can add
+    // our new metrics into the new set.
+    if (GLOBAL_CONFIG->internal_metrics_prefix) {
+        char* metric_key = malloc(strlen(GLOBAL_CONFIG->internal_metrics_prefix)+100);
+        metric_key[0] = '\0';
+        strcat(metric_key, GLOBAL_CONFIG->internal_metrics_prefix);
+        strcat(metric_key, ".flush.time_ms");
+        metrics_add_sample(GLOBAL_METRICS, TIMER, metric_key, tv_diff_ms, 1.0, GLOBAL_CONFIG->internal_metrics_prefix);
+        free(metric_key);
+    }
+
+
     return NULL;
 }
 
@@ -316,6 +337,8 @@ void flush_interval_trigger() {
     init_metrics(GLOBAL_CONFIG->timer_eps, GLOBAL_CONFIG->quantiles,
             GLOBAL_CONFIG->num_quantiles, GLOBAL_CONFIG->histograms,
             GLOBAL_CONFIG->set_precision, m);
+
+    syslog(LOG_INFO, "Swapping out Global Metrics");
 
     // Swap with the new one
     metrics *old = GLOBAL_METRICS;
@@ -337,6 +360,7 @@ void flush_interval_trigger() {
 
     if (err == 0) {
         pthread_detach(thread);
+        syslog(LOG_INFO, "Metric flush thread exited successfully");
         return;
     }
 
@@ -429,7 +453,7 @@ void emit_stat(metric_type type,
     }
     // Increment the number of inputs received
     if (GLOBAL_CONFIG->input_counter)
-    metrics_add_sample(GLOBAL_METRICS, COUNTER, GLOBAL_CONFIG->input_counter, 1, sample_rate);
+    metrics_add_sample(GLOBAL_METRICS, COUNTER, GLOBAL_CONFIG->input_counter, 1, sample_rate, GLOBAL_CONFIG->internal_metrics_prefix);
 
     name->start[name->len] = '\0';
     value->start[value->len] = '\0';
@@ -463,7 +487,7 @@ void emit_stat(metric_type type,
     }
 
     // Store the sample
-    metrics_add_sample(GLOBAL_METRICS, type, name->start, val, sample_rate);
+    metrics_add_sample(GLOBAL_METRICS, type, name->start, val, sample_rate, GLOBAL_CONFIG->internal_metrics_prefix);
 }
 
 /**
@@ -519,7 +543,7 @@ static int handle_binary_set(statsite_conn_handler *handle, uint16_t *header, in
 
     // Increment the input counter
     if (GLOBAL_CONFIG->input_counter)
-        metrics_add_sample(GLOBAL_METRICS, COUNTER, GLOBAL_CONFIG->input_counter, 1, 1.0);
+        metrics_add_sample(GLOBAL_METRICS, COUNTER, GLOBAL_CONFIG->input_counter, 1, 1.0, GLOBAL_CONFIG->internal_metrics_prefix);
 
     // Update the set
     metrics_set_update(GLOBAL_METRICS, key, key+header[1]);
@@ -619,10 +643,10 @@ static int handle_binary_client_connect(statsite_conn_handler *handle) {
 
         // Increment the input counter
         if (GLOBAL_CONFIG->input_counter)
-            metrics_add_sample(GLOBAL_METRICS, COUNTER, GLOBAL_CONFIG->input_counter, 1, 1.0);
+            metrics_add_sample(GLOBAL_METRICS, COUNTER, GLOBAL_CONFIG->input_counter, 1, 1.0, GLOBAL_CONFIG->internal_metrics_prefix);
 
         // Add the sample
-        metrics_add_sample(GLOBAL_METRICS, type, (char*)key, *(double*)(cmd+4), 1.0);
+        metrics_add_sample(GLOBAL_METRICS, type, (char*)key, *(double*)(cmd+4), 1.0, GLOBAL_CONFIG->internal_metrics_prefix);
 
         // Make sure to free the command buffer if we need to
         if (unlikely(should_free)) free(cmd);

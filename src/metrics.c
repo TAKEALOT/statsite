@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "metrics.h"
+#include "config.h"
 #include "set.h"
 
 static int counter_delete_cb(void *data, const char *key, void *value);
@@ -214,24 +215,63 @@ static int metrics_set_gauge(metrics *m, char *name, double val, bool delta) {
  * @arg val The sample to add
  * @return 0 on success.
  */
-int metrics_add_sample(metrics *m, metric_type type, char *name, double val, double sample_rate) {
+int metrics_add_sample(metrics *m, metric_type type, char *name, double val, double sample_rate, char* internal_metrics_prefix) {
+    // prepare our metrics_keys - don't hate me for this hack to get around
+    // having to do mallocs more precisely for every counter type.
+    char* metric_key;
+    if (internal_metrics_prefix) {
+      metric_key = malloc(strlen(internal_metrics_prefix)+100);
+      metric_key[0] = '\0';
+      strcat(metric_key, internal_metrics_prefix);
+    }
+    // process metrics according to type
     switch (type) {
         case KEY_VAL:
+            if (internal_metrics_prefix) {
+                strcat(metric_key, ".add_sample.key_val");
+                metrics_increment_counter(m, metric_key, 1, 1.0);
+                free(metric_key);
+            }
             return metrics_add_kv(m, name, val);
 
         case GAUGE:
+            if (internal_metrics_prefix) {
+                strcat(metric_key, ".add_sample.gauge");
+                metrics_increment_counter(m, metric_key, 1, 1.0);
+                free(metric_key);
+            }
             return metrics_set_gauge(m, name, val, false);
 
         case GAUGE_DELTA:
+            if (internal_metrics_prefix) {
+                strcat(metric_key, ".add_sample.gauge_delta");
+                metrics_increment_counter(m, metric_key, 1, 1.0);
+                free(metric_key);
+            }
             return metrics_set_gauge(m, name, val, true);
 
         case COUNTER:
+            if (internal_metrics_prefix) {
+                strcat(metric_key, ".add_sample.counter");
+                metrics_increment_counter(m, metric_key, 1, 1.0);
+                free(metric_key);
+            }
             return metrics_increment_counter(m, name, val, sample_rate);
 
         case TIMER:
+            if (internal_metrics_prefix) {
+                strcat(metric_key, ".add_sample.timer");
+                metrics_increment_counter(m, metric_key, 1, 1.0);
+                free(metric_key);
+            }
             return metrics_add_timer_sample(m, name, val, sample_rate);
 
         default:
+            if (internal_metrics_prefix) {
+                strcat(metric_key, ".add_sample.undefined");
+                metrics_increment_counter(m, metric_key, 1, 1.0);
+                free(metric_key);
+            }
             return -1;
     }
 }

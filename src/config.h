@@ -63,6 +63,7 @@ typedef struct {
     char *pid_file;
     bool binary_stream;
     char *input_counter;
+    char *internal_metrics_prefix;
     histogram_config *hist_configs;
     radix_tree *histograms;
     double set_eps;

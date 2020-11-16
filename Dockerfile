@@ -29,5 +29,7 @@ COPY --from=builder /usr/local/share/statsite/ /usr/local/share/statsite/
 # You'll need to mount your configuration in here.
 VOLUME /etc/statsite
 
+EXPOSE 8125
+
 ENTRYPOINT ["/usr/local/bin/statsite"]
 CMD ["-f","/etc/statsite/statsite.conf"]
